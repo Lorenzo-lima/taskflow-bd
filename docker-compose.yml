@@ -1,0 +1,52 @@
+version: '3.8'
+services:
+  app:
+    build: .
+    ports:
+      - "3001:3000"
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/app
+    command: npm start
+    restart: unless-stopped
+
+  db:
+    image: postgres:latest
+    restart: always
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=admin
+      - POSTGRES_DB=taskflow_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10 # Aumentei de 5 para 10 (50 segundos no total)
+      start_period: 20s # Aumentei de 10s para 20s para dar mais tempo na inicialização
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+volumes:
+  pgdata:
+  redisdata:
